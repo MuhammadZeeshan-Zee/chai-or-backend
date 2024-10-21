@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-const uploadOnCloudinary= async function (localFilePath) {
+const uploadOnCloudinary = async function (localFilePath) {
   // Configuration
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -10,19 +10,16 @@ const uploadOnCloudinary= async function (localFilePath) {
 
   // Upload an image
   const uploadResult = await cloudinary.uploader
-    .upload(
-      localFilePath,
-      {
-        resource_type:'auto'
-      }
-    )
+    .upload(localFilePath, {
+      resource_type: "auto",
+    })
     .catch((error) => {
       console.log(error);
-      fs.unlinkSync(localFilePath) //remove locally saved temporary file as the upload operation got failed
-      return null
+      fs.unlinkSync(localFilePath); //remove locally saved temporary file as the upload operation got failed
+      return null;
     });
 
-  console.log("file is uploaded successfully",uploadResult.url);
+  // console.log("uploadResult", uploadResult);
 
   // Optimize delivery by resizing and applying auto-format and auto-quality
   const optimizeUrl = cloudinary.url("shoes", {
@@ -30,7 +27,7 @@ const uploadOnCloudinary= async function (localFilePath) {
     quality: "auto",
   });
 
-  console.log(optimizeUrl);
+  // console.log("optimizeUrl",optimizeUrl);
 
   // Transform the image: auto-crop to square aspect_ratio
   const autoCropUrl = cloudinary.url("shoes", {
@@ -40,7 +37,8 @@ const uploadOnCloudinary= async function (localFilePath) {
     height: 500,
   });
 
-  console.log(autoCropUrl);
-  return uploadResult
+  // console.log("autoCropUrl",autoCropUrl);
+  fs.unlinkSync(localFilePath);
+  return uploadResult;
 };
-export {uploadOnCloudinary}
+export { uploadOnCloudinary };
