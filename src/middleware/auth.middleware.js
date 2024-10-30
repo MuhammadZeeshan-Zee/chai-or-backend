@@ -3,7 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import jwt from "jsonwebtoken";
 import { User } from "../model/user.model.js";
 
-export const verifyJWT = asyncHandler(async (req, res, next) => {
+export const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
     const accessToken =
       req.cookies?.accessToken ||
