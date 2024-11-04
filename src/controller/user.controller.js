@@ -4,6 +4,7 @@ import { User } from "../model/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import { SendEmailUtil } from "../utils/emailSender.js";
 
 const registerUser = asyncHandler(async (req, res) => {
   const { username, email, fullname, password } = req.body;
@@ -222,15 +223,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
 });
 const resetPassword = asyncHandler(async (req, res) => {
-  const { newPassword, oldPassword, confirmPassword } = req.body;
+  const { email, newPassword, oldPassword, confirmPassword } = req.body;
   if (newPassword !== confirmPassword) {
     throw new ApiError("new  password and confirm password not matched");
   }
-  const user = await User.findById(req.user._id);
-  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
-  if (!isPasswordCorrect) {
-    throw new ApiError(400, "Invalid old password");
-  }
+  const user = await User.findOne({email});
+ 
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
   return res
@@ -266,13 +264,15 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   console.log(1);
   let avtarLocalPath;
   // if (files && Array.isArray(files.avatar) && files.avatar.length > 0) {
-    avtarLocalPath = req.files?.avatar[0]?.path;
+  avtarLocalPath = req.files?.avatar[0]?.path;
   // }
 
   if (!avtarLocalPath) {
     throw new ApiError("Avtar image is missing");
   }
   const avtarCloud = await uploadOnCloudinary(avtarLocalPath);
+  console.log("avtarCloud", avtarCloud);
+
   if (!avtarCloud.url) {
     throw new ApiError("Error while uploading Avtar on cloudinary");
   }
@@ -311,6 +311,116 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "Cover image updated Successfully"));
 });
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim()) {
+    throw new ApiError(400, "username is missing");
+  }
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+  if (!channel?.length) {
+    throw new ApiError(404, "channel does not exists");
+  }
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "User channel fetched successfully")
+    );
+});
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError("You are not registered");
+  }
+  console.log("user", user);
+
+  user.otp = Math.floor(1000 + Math.random() * 9000).toString();
+  user.otpExpires = Date.now() + 300000;
+  const savedUser = await user.save({ validateBeforeSave: false });
+  console.log("savedUser", savedUser);
+  const body = {
+    from: `${process.env.EMAIL_TITLE_SMTP} <${process.env.EMAIL_ID_SMTP}>`,
+    to: email,
+    subject: "Authentication",
+    html: `<h2>Hello ${email}</h2>
+        <p>Your OTP is <strong>${user.otp}</strong></p>
+        <p>If you did not initiate this request, please contact us immediately at eg@.com</p>
+        <p>Thank you</p>
+        <strong>Developer Team</strong>`,
+  };
+  const message = "Please check your email to verify!";
+
+  try {
+    await SendEmailUtil(body);
+    res.status(200).json(new ApiResponse(200, {}, message));
+  } catch (error) {
+    console.error("Error sending email:", error.message);
+    throw new ApiError(500, "Error sending email");
+  }
+});
+const verifyOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  const user = await User.findOne({ email, otp });
+  if (!user || user.otpExpires < Date.now())
+    throw new ApiError(400, "Invalid or expired OTP");
+
+  user.otp = undefined;
+  user.otpExpires = undefined;
+  await user.save();
+
+  res.status(200).json(new ApiResponse(200, { email }, "OTP verified"));
+});
 export {
   registerUser,
   loginUser,
@@ -321,4 +431,6 @@ export {
   updateUserDetails,
   updateUserAvatar,
   updateUserCoverImage,
+  forgotPassword,
+  verifyOTP
 };
