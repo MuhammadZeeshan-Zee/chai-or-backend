@@ -222,13 +222,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       )
     );
 });
-const resetPassword = asyncHandler(async (req, res) => {
-  const { email, newPassword, oldPassword, confirmPassword } = req.body;
+const changePassword = asyncHandler(async (req, res) => {
+  const { newPassword, oldPassword, confirmPassword } = req.body;
   if (newPassword !== confirmPassword) {
     throw new ApiError("new  password and confirm password not matched");
   }
-  const user = await User.findOne({email});
- 
+  const user = await User.findById(req.user._id);
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordCorrect) {
+    throw new ApiError(400, "Invalid old password");
+  }
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
   return res
@@ -421,16 +424,28 @@ const verifyOTP = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(200, { email }, "OTP verified"));
 });
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, newPassword } = req.body;
+  const user = await User.findOne({ email });
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "password updated successfully"));
+});
+
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
-  resetPassword,
+  changePassword,
   getCurrentUser,
   updateUserDetails,
   updateUserAvatar,
   updateUserCoverImage,
   forgotPassword,
-  verifyOTP
+  verifyOTP,
+  resetPassword,
 };
