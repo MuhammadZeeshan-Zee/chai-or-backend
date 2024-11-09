@@ -1,54 +1,51 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-const userSchema = new Schema(
-  {
-    watchHistory: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Video",
-      },
-    ],
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      lowecase: true,
-      index: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowecase: true,
-    },
-    fullname: {
-      type: String,
-      required: true,
-      lowecase: true,
-      index: true,
-    },
-    avtar: {
-      type: String, //from cloudnary
-      required: true,
-    },
-    coverImage: {
-      type: String, //from cloudnary
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    refreshToken: {
-      type: String,
-    },
-    otp:{
-      type:String,
-    },
-    otpExpires:{
-      type:Date
-    }
+const userSchema = new Schema({
+  firstName: {
+    type: String,
+    require: true,
   },
+  lastName: {
+    type: String,
+    require: true,
+  },
+  email: {
+    type: String,
+    require: true,
+  },
+  phoneNumber:{
+    type:String,
+    require: true,
+  },
+  password: {
+    type: String,
+    require: true,
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'user'],
+    default: 'user',
+  },
+  action: {
+    type: Boolean,
+    default:false
+    // require: true,
+  },
+  orderList:[{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'Book'
+  }],
+  refreshToken: {
+    type: String,
+  },
+  otp:{
+    type:String,
+  },
+  otpExpires:{
+    type:Date
+  }
+},
   { timestamps: true }
 );
 
