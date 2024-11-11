@@ -16,9 +16,9 @@ const registerUser = asyncHandler(async (req, res) => {
   ) {
     throw new ApiError(400, "All fields are required");
   }
-  if (!email.includes("@")) {
-    throw new ApiError(400, "Please enter valid email");
-  }
+  // if (!email.includes("@")) {
+  //   throw new ApiError(400, "Please enter valid email");
+  // }
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
@@ -168,6 +168,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 const changePassword = asyncHandler(async (req, res) => {
   const { newPassword, oldPassword, confirmPassword } = req.body;
+  // if(!newPassword && !oldPassword && !confirmPassword) return
   if (newPassword !== confirmPassword) {
     throw new ApiError("new  password and confirm password not matched");
   }
@@ -182,14 +183,12 @@ const changePassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "password changed successfully"));
 });
-const getCurrentUser = asyncHandler(async (req, res) => {
-  return res
-    .status(200)
-    .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
-});
+
 const updateUserDetails = asyncHandler(async (req, res) => {
-  const { fullName, email } = req.body;
-  if (!fullName || !email) {
+  console.log("req.user", req.user);
+
+  const { firstName, lastName, phoneNumber } = req.body;
+  if (firstName || lastName || phoneNumber) {
     throw new ApiError("All fields are required");
   }
 
@@ -242,7 +241,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   if (!email.includes("@")) {
     throw new ApiError(400, "Please enter valid email");
   }
- 
 });
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -359,68 +357,15 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       )
     );
 });
-const isSubscribed = asyncHandler(async (req, res) => {
-  const { channelId } = req.body; // ID of the channel being subscribed to/unsubscribed
-  const userId = req.user._id; // Logged-in user's ID
 
-  if (!channelId) {
-    throw new ApiError(400, "Channel ID is required");
-  }
-
-  if (userId.toString() === channelId.toString()) {
-    throw new ApiError(400, "You cannot subscribe to your own channel");
-  }
-
-  // Use aggregation to check if a subscription exists
-  const existingSubscription = await Subscription.aggregate([
-    {
-      $match: {
-        subscriber: userId,
-        channel: channelId,
-      },
-    },
-    {
-      $count: "count", // Count matching subscriptions
-    },
-  ]);
-
-  if (existingSubscription.length > 0 && existingSubscription[0].count > 0) {
-    // If subscription exists, unsubscribe
-    await Subscription.deleteOne({
-      subscriber: userId,
-      channel: channelId,
-    });
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { isSubscribed: false },
-          "Successfully unsubscribed"
-        )
-      );
-  }
-
-  // If subscription does not exist, subscribe
-  await Subscription.create({ subscriber: userId, channel: channelId });
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, { isSubscribed: true }, "Successfully subscribed")
-    );
-});
 export {
   registerUser,
   loginUser,
   logoutUser,
   refreshAccessToken,
   changePassword,
-  getCurrentUser,
   updateUserDetails,
   updateUserAvatar,
-  updateUserCoverImage,
   forgotPassword,
   verifyOTP,
   resetPassword,
