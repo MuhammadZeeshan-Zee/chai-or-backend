@@ -31,6 +31,7 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     phoneNumber,
     password,
+    avtar: "",
   });
 
   const createdUser = await User.findById(user._id).select(
@@ -183,12 +184,16 @@ const changePassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "password changed successfully"));
 });
-
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
+});
 const updateUserDetails = asyncHandler(async (req, res) => {
   console.log("req.user", req.user);
 
   const { firstName, lastName, phoneNumber } = req.body;
-  if (firstName || lastName || phoneNumber) {
+  if (!firstName || !lastName || !phoneNumber) {
     throw new ApiError("All fields are required");
   }
 
@@ -196,8 +201,9 @@ const updateUserDetails = asyncHandler(async (req, res) => {
     req.user._id,
     {
       $set: {
-        fullname: fullName,
-        email: email,
+        firstName,
+        lastName,
+        phoneNumber,
       },
     },
     { new: true }
@@ -236,12 +242,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Avatar image updated Successfully"));
 });
 
-const getUserChannelProfile = asyncHandler(async (req, res) => {
-  const { email } = req.params;
-  if (!email.includes("@")) {
-    throw new ApiError(400, "Please enter valid email");
-  }
-});
 const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
@@ -296,67 +296,6 @@ const resetPassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "password updated successfully"));
 });
-const getWatchHistory = asyncHandler(async (req, res) => {
-  const user = await User.aggregate([
-    {
-      $match: { _id: new mongoose.Types.ObjectId(req.user._id) },
-    },
-    {
-      $lookup: {
-        from: "videos",
-        localField: "watchHistory",
-        foreignField: "_id",
-        as: "watchHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
-                {
-                  $project: {
-                    fullName: 1,
-                    username: 1,
-                    subscribersCount: 1,
-                    channelsSubscribedToCount: 1,
-                    isSubscribed: 1,
-                    avtar: 1,
-                    coverImage: 1,
-                    email: 1,
-                  },
-                },
-              ],
-            },
-          },
-          {
-            $addFields: {
-              owner: {
-                // $arrayElemAt:["$owner",0]
-                $first: "$owner",
-              },
-            },
-          },
-        ],
-      },
-    },
-  ]);
-  if (!user) {
-    throw new ApiError(404, "user does not exists");
-  }
-  console.log("user", user);
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        user[0].watchHistory,
-        "User watchHistory fetched successfully"
-      )
-    );
-});
 
 export {
   registerUser,
@@ -364,11 +303,10 @@ export {
   logoutUser,
   refreshAccessToken,
   changePassword,
+  getCurrentUser,
   updateUserDetails,
   updateUserAvatar,
   forgotPassword,
   verifyOTP,
   resetPassword,
-  getUserChannelProfile,
-  getWatchHistory,
 };

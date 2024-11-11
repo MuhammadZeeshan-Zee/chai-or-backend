@@ -10,7 +10,9 @@ app.use(cookieParser()); //from your server to access cookies from user browser 
 
 //import Routes
 import UserRoute from "./route/user.route.js";
+import BookRoute from "./route/book.route.js";
 
 //declaration routes
 app.use("/user", UserRoute);
+app.use("/user", BookRoute);
 export { app };
