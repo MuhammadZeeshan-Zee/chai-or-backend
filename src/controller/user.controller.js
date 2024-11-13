@@ -296,6 +296,29 @@ const resetPassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "password updated successfully"));
 });
+const updateUserAction = asyncHandler(async (req, res) => {
+ 
+    const id = req.params.id;
+   
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid user ID format");
+    }
+    const updateData = await User.findByIdAndUpdate(id, {
+      $set: {
+        action: true,
+      },
+    }, {
+      new: true,
+    });
+    if (!updateData) {
+      throw new ApiError(400, "User not found");
+    }
+    return res
+    .status(200)
+    .json(new ApiResponse(200, updateData, "password updated successfully"));
+  
+});
+
 
 export {
   registerUser,
@@ -309,4 +332,5 @@ export {
   forgotPassword,
   verifyOTP,
   resetPassword,
+  updateUserAction
 };

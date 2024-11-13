@@ -8,7 +8,7 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 import { AdminVerify } from "../middleware/adminVerify.middleware.js";
 
 const router = Router();
-router.route("/order").post(createbookService);
+router.route("/order").post(verifyJWT,createbookService);
 router.route("/getAllOrders").get(verifyJWT, getAllBookedOrders);
 router.route("/updateOrderStatus/:id").post(verifyJWT, updateOrderStatus);
 export default router;

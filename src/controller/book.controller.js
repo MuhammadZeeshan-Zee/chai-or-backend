@@ -95,7 +95,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     throw new ApiError(401, "Invalid order ID format");
   }
-  const updateData = await Book.findByIdAndUpdate(
+  const updateDaetata = await Book.findByIdAndUpdate(
     id,
     {
       $set: {

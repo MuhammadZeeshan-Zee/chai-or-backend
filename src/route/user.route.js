@@ -11,7 +11,7 @@ import {
   forgotPassword,
   verifyOTP,
   changePassword,
- 
+  updateUserAction,
 } from "../controller/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
@@ -38,5 +38,6 @@ router.route("/updateAvatar").post(
 router.route("/forgotPassword").post(forgotPassword);
 router.route("/verifyOTP").post(verifyOTP);
 router.route("/resetPassword").post(resetPassword);
+router.route("/updateUserAction/:id").put(updateUserAction);
 
 export default router;
